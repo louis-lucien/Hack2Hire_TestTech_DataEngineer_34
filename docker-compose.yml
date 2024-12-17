@@ -1,0 +1,35 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres_weather
+    restart: always
+    environment:
+      POSTGRES_DB: Weather
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5434:5432"  # Expose le port PostgreSQL sur le port 5434
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # Volume nommé pour la persistance des données PostgreSQL
+
+  weather_app:
+    build: .
+    container_name: weather_scraper
+    restart: on-failure
+    depends_on:
+      - postgres  # L'application dépend de PostgreSQL
+    environment:
+      - API_KEY=5a85d063251774418b340f3747508d90  # Utilisez votre clé API OpenWeatherMap
+      - DB_NAME=Weather
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+    volumes:
+      - .:/app  # Monte le répertoire local pour le code source
+    command: ["python", "app.py"]  # Exécute votre script Python
+
+volumes:
+  postgres_data:  # Déclare le volume nommé
