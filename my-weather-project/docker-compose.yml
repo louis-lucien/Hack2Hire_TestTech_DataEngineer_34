@@ -1,0 +1,54 @@
+version: "3.8"
+
+services:
+  # Service PostgreSQL
+  postgres:
+    image: postgres:15
+    container_name: postgres_weather
+    restart: always
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres_data:/var/lib/postgresql/data
+
+  # Service Weather App
+  weather_app:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: weather_scraper
+    restart: on-failure
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - ./dags:/opt/airflow/dags
+    command: ["./wait-for-it.sh", "postgres:5432", "--", "python", "app.py"]
+   # Service Streamlit pour afficher les données météorologiques
+  streamlit_dashboard:
+    image: python:3.9
+    container_name: streamlit_dashboard
+    restart: always
+    ports:
+      - "8501:8501"
+    depends_on:
+      - postgres
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ["streamlit", "run", "dashboard.py"]
+    env_file:
+      - .env
+
+
+# Déclaration des volumes
+volumes:
+  postgres_data: {}
+
