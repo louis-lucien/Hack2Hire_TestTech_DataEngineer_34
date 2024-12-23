@@ -1,0 +1,17 @@
+# Utilisation de l'image officielle Python
+FROM python:3.10
+
+# Définir le répertoire de travail dans le conteneur
+WORKDIR /app
+
+# Copier le fichier requirements.txt dans le conteneur
+COPY requirements.txt .
+
+# Installer les dépendances Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier tout le reste de l'application dans le conteneur
+COPY . /app
+
+# Commande pour démarrer Streamlit
+CMD ["streamlit", "run", "dashboard.py"]

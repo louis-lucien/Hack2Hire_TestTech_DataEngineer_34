@@ -1,15 +1,19 @@
-from airflow import DAG
-from airflow.operators.python import PythonOperator
-from datetime import datetime
 import os
 import psycopg2
 import requests
+from datetime import datetime
 from dotenv import load_dotenv
 
 # Charger les variables d'environnement
 load_dotenv()
 
-# Configuration de la base de données et de l'API
+# Vérification des variables obligatoires
+REQUIRED_ENV_VARS = ["API_KEY", "DB_NAME", "DB_USER", "DB_PASSWORD", "DB_HOST", "DB_PORT"]
+for var in REQUIRED_ENV_VARS:
+    if not os.getenv(var):
+        raise EnvironmentError(f"La variable d'environnement {var} est manquante dans le fichier .env.")
+
+# Configuration
 API_KEY = os.getenv("API_KEY")
 DB_CONFIG = {
     "dbname": os.getenv("DB_NAME"),
@@ -20,7 +24,11 @@ DB_CONFIG = {
 }
 
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
-CITIES = ["Dakar", "Thies", "Saint-Louis", "Ziguinchor", "Kaolack"]
+# Ajoutez les principales villes/régions du Sénégal
+CITIES = [
+    "Dakar", "Thies", "Saint-Louis", "Ziguinchor", "Kaolack", 
+    "Tambacounda", "Louga", "Fatick", "Kolda", "Diourbel", "Matam", "Goudomp","Kédougou"
+]
 
 def fetch_weather(city):
     """Récupérer les données météo pour une ville donnée."""
@@ -69,26 +77,9 @@ def save_to_db(weather_data):
     except psycopg2.Error as e:
         print(f"Erreur PostgreSQL : {e}")
 
-def run_scraping():
+if __name__ == "__main__":
     for city in CITIES:
+        print(f"Récupération des données pour {city}...")
         weather = fetch_weather(city)
         if weather:
             save_to_db(weather)
-
-# Définir le DAG Airflow
-default_args = {
-    'owner': 'airflow',
-    'retries': 1,
-    'start_date': datetime(2024, 12, 22),
-}
-
-with DAG(
-    'weather_scraping_dag',
-    default_args=default_args,
-    description='DAG pour le scraping des données météorologiques',
-    schedule_interval='@daily',
-) as dag:
-    scrape_task = PythonOperator(
-        task_id='scrape_weather',
-        python_callable=run_scraping
-    )

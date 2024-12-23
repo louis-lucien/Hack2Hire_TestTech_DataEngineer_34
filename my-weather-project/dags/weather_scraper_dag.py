@@ -1,38 +1,37 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
+from airflow.providers.postgres.hooks.postgres import PostgresHook
+from airflow.providers.http.hooks.http import HttpHook
 from datetime import datetime
 import os
-import psycopg2
-import requests
 from dotenv import load_dotenv
 
 # Charger les variables d'environnement
 load_dotenv()
 
-# Configuration de la base de données et de l'API
+# Connexions Airflow (Postgres et API)
+POSTGRES_CONN_ID = 'postgres_default'
+API_CONN_ID = 'meteo_api'
+
+# Charger l'API Key depuis les variables d'environnement ou Airflow
 API_KEY = os.getenv("API_KEY")
-DB_CONFIG = {
-    "dbname": os.getenv("DB_NAME"),
-    "user": os.getenv("DB_USER"),
-    "password": os.getenv("DB_PASSWORD"),
-    "host": os.getenv("DB_HOST"),
-    "port": os.getenv("DB_PORT")
-}
+
+# Liste des villes à scrapper
+CITIES = [
+    "Dakar", "Thies", "Saint-Louis", "Ziguinchor", "Kaolack", 
+    "Tambacounda", "Louga", "Fatick", "Kolda", "Diourbel", "Matam", "Goudomp", "Kédougou"
+]
 
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
-CITIES = ["Dakar", "Thies", "Saint-Louis", "Ziguinchor", "Kaolack"]
 
+# Fonction pour récupérer la météo
 def fetch_weather(city):
-    """Récupérer les données météo pour une ville donnée."""
-    params = {
-        "q": city,
-        "appid": API_KEY,
-        "units": "metric",
-        "lang": "fr"
-    }
-    try:
-        response = requests.get(BASE_URL, params=params)
-        response.raise_for_status()
+    # Utilisation de HttpHook d'Airflow pour interagir avec l'API
+    http_hook = HttpHook(method='GET', http_conn_id=API_CONN_ID)
+    params = {"q": city, "appid": API_KEY, "units": "metric", "lang": "fr"}
+    response = http_hook.run(endpoint=BASE_URL, params=params)
+    
+    if response.status_code == 200:
         data = response.json()
         return {
             "ville": data["name"],
@@ -42,51 +41,41 @@ def fetch_weather(city):
             "humidité": data["main"]["humidity"],
             "horodatage": datetime.utcfromtimestamp(data["dt"]).strftime('%Y-%m-%d %H:%M:%S')
         }
-    except requests.exceptions.RequestException as e:
-        print(f"Erreur réseau pour {city}: {e}")
-    except KeyError as e:
-        print(f"Donnée manquante dans la réponse API pour {city}: {e}")
-    return None
+    else:
+        raise Exception(f"Erreur lors de la récupération des données météo pour {city}")
 
+# Fonction pour enregistrer les données dans la base de données
 def save_to_db(weather_data):
-    """Insérer les données météo dans PostgreSQL."""
-    try:
-        with psycopg2.connect(**DB_CONFIG) as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO weather_data (ville, temperature, description, pression, humidite, horodatage)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (
-                    weather_data["ville"],
-                    weather_data["température"],
-                    weather_data["description"],
-                    weather_data["pression"],
-                    weather_data["humidité"],
-                    weather_data["horodatage"]
-                ))
-                conn.commit()
-                print(f"Données insérées pour {weather_data['ville']}.")
-    except psycopg2.Error as e:
-        print(f"Erreur PostgreSQL : {e}")
+    # Utilisation de PostgresHook d'Airflow pour interagir avec PostgreSQL
+    postgres_hook = PostgresHook(postgres_conn_id=POSTGRES_CONN_ID)
+    sql = """
+        INSERT INTO weather_data (ville, temperature, description, pression, humidite, horodatage)
+        VALUES (%s, %s, %s, %s, %s, %s)
+    """
+    postgres_hook.run(sql, parameters=(
+        weather_data["ville"],
+        weather_data["température"],
+        weather_data["description"],
+        weather_data["pression"],
+        weather_data["humidité"],
+        weather_data["horodatage"]
+    ))
 
+# Fonction principale pour lancer le scraping et l'enregistrement dans la DB
 def run_scraping():
     for city in CITIES:
         weather = fetch_weather(city)
         if weather:
             save_to_db(weather)
 
-# Définir le DAG Airflow
-default_args = {
-    'owner': 'airflow',
-    'retries': 1,
-    'start_date': datetime(2024, 12, 22),
-}
+# Définition du DAG
+default_args = {'owner': 'airflow', 'retries': 1, 'start_date': datetime(2024, 12, 22)}
 
 with DAG(
     'weather_scraping_dag',
     default_args=default_args,
     description='DAG pour le scraping des données météorologiques',
-    schedule='@daily',  # Remplace schedule_interval par schedule
+    schedule_interval='@daily',  # Remplace schedule_interval par schedule
 ) as dag:
     scrape_task = PythonOperator(
         task_id='scrape_weather',

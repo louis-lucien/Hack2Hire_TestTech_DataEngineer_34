@@ -4,17 +4,22 @@ import psycopg2
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.express as px
+import os
+from dotenv import load_dotenv
+
+# Charger les variables d'environnement
+load_dotenv()
 
 # Connexion à PostgreSQL
 def get_data_from_postgres():
     conn = psycopg2.connect(
-        host="postgres",
-        port="5432",
-        dbname="Weaher",  # Remplacez par le nom de votre base de données
-        user="postgres",    # Remplacez par votre utilisateur
-        password="postgres"  # Remplacez par votre mot de passe
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
+        dbname=os.getenv("DB_NAME"),
+        user=os.getenv("DB_USER"),
+        password=os.getenv("DB_PASSWORD")
     )
-    query = "SELECT * FROM weather_data;"  # Remplacez par votre requête ou table
+    query = "SELECT * FROM weather_data;"  # Assurez-vous que cette table existe dans votre base
     df = pd.read_sql(query, conn)
     conn.close()
     return df
