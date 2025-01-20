@@ -1,12 +1,12 @@
-Projet : Pipeline de Données Météo du Sénégal
+**Projet : Pipeline de Données Météo du Sénégal**
 
-Description
+**Description**
 
-Ce projet permet de récupérer quotidiennement les données météorologiques de Dakar et Thiès via l'API OpenWeather. Les données récupérées (température, description, pression, humidité, horodatage) sont ensuite stockées dans une base de données PostgreSQL.
+Ce projet permet de récupérer quotidiennement les données météorologiques de tout les villes du sénégal via l'API OpenWeather. Les données récupérées (température, description, pression, humidité, horodatage) sont ensuite stockées dans une base de données PostgreSQL.
 
-Tâches
+**Tâches**
 
-Récupérer les données météo : Scraper les données météo de Dakar et Thiès.
+Récupérer les données météo : Scraper les données météo de tout les villes du sénégal
 
 Stocker dans PostgreSQL : Insérer les données dans une base de données PostgreSQL.
 
@@ -14,13 +14,15 @@ Docker : Créer un fichier docker-compose.yml pour exécuter l'application et la
 
 Hébergement sur GitHub : Héberger le code sur GitHub.
 
-Visualisation : Utiliser Power BI ou Looker Studio pour visualiser les données.
-
 Orchestration avec Astro CLI : Automatiser les flux de données avec Astro CLI.
 
 Tableau de bord Streamlit : Créer une interface interactive pour visualiser et analyser les données météo.
 
-Prérequis
+
+------------------------------------------------------------------
+
+
+**Prérequis**
 
 Docker et Docker Compose installés.
 
@@ -34,14 +36,13 @@ Configuration de l'environnement
 
 Créez un fichier .env avec les informations suivantes :
 
-API_KEY=VotreCléAPI
-DB_NAME=Weather
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_HOST=postgres
-DB_PORT=5432
+API_KEY=VotreCléAPI 
+DB_NAME=
+DB_PASSWORD
+DB_HOST
+DB_PORT
 
-Lancer le projet avec Docker
+**Lancer le projet avec Docker**
 
 Construisez et lancez les services Docker :
 
@@ -53,17 +54,9 @@ Base de données
 
 La table weather_data contient les informations météo :
 
-CREATE TABLE IF NOT EXISTS weather_data (
-    id SERIAL PRIMARY KEY,
-    ville VARCHAR(50),
-    temperature FLOAT,
-    description VARCHAR(255),
-    pression INT,
-    humidite INT,
-    horodatage TIMESTAMP
-);
+CREATE TABLE IF NOT EXISTS weather_data ( id SERIAL PRIMARY KEY, ville VARCHAR(50), temperature FLOAT, description VARCHAR(255), pression INT, humidite INT, horodatage TIMESTAMP );
 
-Orchestration avec Astro CLI
+**Orchestration avec Astro CLI**
 
 Installation des dépendances Astro CLI :
 
@@ -75,14 +68,13 @@ astro dev start
 
 Planification des tâches : Définir les DAG pour automatiser l'extraction, le traitement et le stockage des données météo.
 
-Tableau de bord Streamlit
+**Tableau de bord Streamlit**
 
 Lancer Streamlit :
 
 streamlit run dashboard.py
 
-Accéder au tableau de bord :
-Ouvrez votre navigateur sur http://localhost:8501.
+Accéder au tableau de bord : Ouvrez votre navigateur sur http://localhost:8501.
 
 Visualisation
 

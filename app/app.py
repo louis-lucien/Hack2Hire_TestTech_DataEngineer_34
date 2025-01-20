@@ -1,3 +1,5 @@
+# app/app.py
+
 import os
 import psycopg2
 import requests
@@ -24,10 +26,9 @@ DB_CONFIG = {
 }
 
 BASE_URL = "https://api.openweathermap.org/data/2.5/weather"
-# Ajoutez les principales villes/régions du Sénégal
 CITIES = [
     "Dakar", "Thies", "Saint-Louis", "Ziguinchor", "Kaolack", 
-    "Tambacounda", "Louga", "Fatick", "Kolda", "Diourbel", "Matam", "Goudomp","Kédougou"
+    "Tambacounda", "Louga", "Fatick", "Kolda", "Diourbel", "Matam", "Goudomp", "Kédougou"
 ]
 
 def fetch_weather(city):
@@ -77,7 +78,8 @@ def save_to_db(weather_data):
     except psycopg2.Error as e:
         print(f"Erreur PostgreSQL : {e}")
 
-if __name__ == "__main__":
+def crawl():
+    """Fonction principale pour récupérer et sauvegarder les données météo pour toutes les villes."""
     for city in CITIES:
         print(f"Récupération des données pour {city}...")
         weather = fetch_weather(city)
